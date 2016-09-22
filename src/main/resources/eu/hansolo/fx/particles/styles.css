@@ -1,0 +1,31 @@
+/*
+ * Copyright (c) 2016 by Gerrit Grunwald
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.bubble {
+    -main-fill           : linear-gradient(from 0% 0% to 0% 100%, rgba(255, 255, 255, 0.04706) 0%, rgba(255, 255, 255, 0.04706) 85%, rgba(255, 255, 255, 0.07542) 85%, rgba(255, 255, 255, 0.89804) 100%);
+    -highlight-fill      : linear-gradient(from 0% 0% to 0% 100%, rgba(255, 255, 255, 0.69804) 0%, transparent 100%);
+
+    -fx-background-color : -main-fill, -highlight-fill;
+    -fx-background-insets: 0, 2 7 25 7;
+    -fx-background-insets: 0, 2 12 27 12;
+    -fx-background-radius: 1024;
+
+    -fx-border-color     : rgba(255, 255, 255, 0.25);
+    -fx-border-insets    : 0;
+    -fx-border-width     : 1;
+    -fx-border-radius    : 1024;
+    -fx-border-style     : solid;
+}
