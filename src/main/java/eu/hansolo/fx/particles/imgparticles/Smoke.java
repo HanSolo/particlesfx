@@ -21,68 +21,55 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 
 /**
  * Created by hansolo on 07.11.16.
  */
-public class Smoke1 extends Canvas {
-    private static final Random RND             = new Random();
-    private static final Image  IMAGE           = new Image(Smoke.class.getResourceAsStream("smoke2.png"));
-    private static final double HALF_WIDTH      = IMAGE.getWidth() * 0.5;
-    private static final double HALF_HEIGHT     = IMAGE.getHeight() * 0.5;
-    private static final long   GENERATION_RATE = 1_000_000_000l / 100;
-    private static final int    NO_OF_PARTICLES = 150;
-    private static double          width;
-    private static double          height;
-    private static boolean         running;
-    private        GraphicsContext ctx;
-    private        long            lastTimerCall;
-    private        AnimationTimer  timer;
-    // Parameters for array based particles
-    private static final int      NO_OF_FIELDS   = 9; // x, y, vx, vy, opacity, size, life, remaining life, active
-    private static final int      ARRAY_LENGTH   = NO_OF_PARTICLES * NO_OF_FIELDS;
-    private static final int      X              = 0;
-    private static final int      Y              = 1;
-    private static final int      VX             = 2;
-    private static final int      VY             = 3;
-    private static final int      OPACITY        = 4;
-    private static final int      SIZE           = 5;
-    private static final int      LIFE           = 6;
-    private static final int      REMAINING_LIFE = 7;
-    private static final int      ACTIVE         = 8;
-    private boolean               particlesVisible;
-    private boolean               initialized;
-    private double[]              particles;
+public class Smoke extends Canvas {
+    private static final Random              RND             = new Random();
+    private static final Image               IMAGE           = new Image(Smoke.class.getResourceAsStream("smoke2.png"));
+    private static final double              HALF_WIDTH      = IMAGE.getWidth() * 0.5;
+    private static final double              HALF_HEIGHT     = IMAGE.getHeight() * 0.5;
+    private static final long                GENERATION_RATE = 1_000_000_000l / 50;
+    private static final int                 NO_OF_PARTICLES = 150;
+    private static       double              width;
+    private static       double              height;
+    private static       boolean             running;
+    private              GraphicsContext     ctx;
+    private              List<ImageParticle> particles;
+    private              long                lastTimerCall;
+    private              AnimationTimer      timer;
 
 
     // ******************** Constructor ***************************************
-    public Smoke1() {
+    public Smoke() {
         running       = false;
         ctx           = getGraphicsContext2D();
         width         = getWidth();
         height        = getHeight();
+        particles     = new CopyOnWriteArrayList<>();
         lastTimerCall = System.nanoTime();
         timer         = new AnimationTimer() {
             @Override public void handle(final long NOW) {
-                drawFast();
+                if (NOW > lastTimerCall + GENERATION_RATE) {
+                    if (running && particles.size() < NO_OF_PARTICLES) particles.add(new ImageParticle());
+                    if (particles.isEmpty()) timer.stop();
+                    lastTimerCall = NOW;
+                }
+                draw();
             }
         };
-        widthProperty().addListener((ov, oldWidth, newWidth) -> width = newWidth.doubleValue());
-        heightProperty().addListener((ov, oldHeight, newHeight) -> height = newHeight.doubleValue());
-        particlesVisible = true;
-        initialized        = false;
+
+        registerListeners();
     }
 
-    public void init() {
-        // Initialize particles
-        particles = new double[ARRAY_LENGTH];
-        int pos   = 0; // next position to insert new particle
-        for (int i = 0 ; i < NO_OF_PARTICLES - NO_OF_FIELDS; i++) {
-            initParticle(pos);
-            pos += NO_OF_FIELDS;
-        }
+    private void registerListeners() {
+        widthProperty().addListener((ov, oldWidth, newWidth) -> width = newWidth.doubleValue());
+        heightProperty().addListener((ov, oldHeight, newHeight) -> height = newHeight.doubleValue());
     }
 
 
@@ -90,71 +77,106 @@ public class Smoke1 extends Canvas {
     public void start() {
         if (running) return;
         running = true;
-        if (!initialized) init();
         timer.start();
     }
 
     public void stop() {
         if (!running) return;
         running = false;
-        timer.stop();
     }
 
-    private void initParticle(int pos) {
-        particles[pos + X]              = RND.nextDouble() * width;
-        particles[pos + Y]              = height + HALF_HEIGHT;
-        particles[pos + VX]             = (RND.nextDouble() * 2.0) - 1.0;
-        particles[pos + VY]             = -(RND.nextDouble() * 3);
-        particles[pos + OPACITY]        = 1.0;
-        particles[pos + SIZE]           = (RND.nextDouble() * 1.0) + 0.5;
-        particles[pos + LIFE]           = (RND.nextDouble() * 20) + 40;
-        particles[pos + REMAINING_LIFE] = particles[pos + LIFE];
-        particles[pos + ACTIVE]         = 1;
-    }
+    private void draw() {
+        //ctx.setGlobalBlendMode(BlendMode.SRC_OVER);
+        //ctx.setFill(Color.BLACK);
+        //ctx.fillRect(0, 0, width, height);
+        ctx.clearRect(0, 0, width, height);
 
-    private void update(int pos) {
-        // Update only active particles
-        if (particles[pos + ACTIVE] > 0) {
-            // Calculate opacity
-            particles[pos + OPACITY] = (particles[pos + REMAINING_LIFE] / particles[pos + LIFE] * 0.5);
+        for (ImageParticle p : particles) {
+            p.opacity = p.remainingLife / p.life * 0.5;
 
-            // Calculate new pos
-            particles[pos + X] += particles[pos + VX];
-            particles[pos + Y] += particles[pos + VY];
+            // Draw particle from image
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.scale(p.size, p.size);
+            //ctx.translate(p.image.getWidth() * (-0.5), p.image.getHeight() * (-0.5));
+            ctx.translate(-HALF_WIDTH, -HALF_HEIGHT);
+            ctx.setGlobalAlpha(p.opacity);
+            ctx.drawImage(p.image, 0, 0);
+            ctx.restore();
 
-            // Calculate remaining life
-            particles[pos + REMAINING_LIFE]--;
+            //p.remainingLife--;
+            p.remainingLife *= 0.98;
+            //p.size *= 0.99;
+            p.x += p.vX;
+            p.y += p.vY;
 
             //regenerate particles
-            if(particles[pos + REMAINING_LIFE] < 0 || particles[pos + SIZE] < 0 || particles[pos + OPACITY] < 0.01) {
+            if (p.remainingLife < 0 || p.size < 0 || p.opacity < 0.01) {
                 if (running) {
-                    initParticle(pos);
+                    p.reInit();
                 } else {
-                    if (particles[pos + OPACITY] < 0) {
-                        particles[pos + ACTIVE]  = 0;
-                    }
+                    particles.remove(p);
                 }
             }
         }
     }
 
-    private void drawFast() {
-        ctx.clearRect(0, 0, width, height);
-        particlesVisible = false;
-        for (int pos = 0 ; pos < NO_OF_PARTICLES; pos += NO_OF_FIELDS) {
-            // Update particle data
-            update(pos);
-            if (particles[pos + OPACITY] > 0.01) particlesVisible = true;
 
-            // Draw particle from image
-            ctx.save();
-            ctx.translate(particles[pos + X], particles[pos + Y]);
-            //ctx.scale(particles[pos + SIZE], particles[pos + SIZE]);
-            ctx.translate(-HALF_WIDTH, -HALF_HEIGHT);
-            ctx.setGlobalAlpha(particles[pos + OPACITY]);
-            ctx.drawImage(IMAGE, 0, 0);
-            ctx.restore();
+    // ******************** InnerClasses **************************************
+    private class ImageParticle {
+        private double x;
+        private double y;
+        private double vX;
+        private double vY;
+        private double opacity;
+        private double size;
+        private Image  image;
+        private double life;
+        private double remainingLife;
+
+
+        // ******************** Constructor ***********************************
+        public ImageParticle() {
+            // Position
+            x = RND.nextDouble() * getWidth();
+            y = getHeight() + HALF_HEIGHT;
+
+            // Size
+            size = (RND.nextDouble() * 1) + 0.5;
+
+            // Velocity
+            vX = (RND.nextDouble() * 0.5) - 0.25;
+            vY = -(RND.nextDouble() * 3);
+
+            // Opacity
+            opacity = 1.0;
+
+            // Image
+            image = IMAGE;
+
+            // Life
+            life          = (RND.nextDouble() * 20) + 40;
+            remainingLife = life;
         }
-        if (!particlesVisible) timer.stop();
+
+        public void reInit() {
+            // Position
+            x = RND.nextDouble() * getWidth();
+            y = getHeight() + HALF_HEIGHT;
+
+            // Size
+            size = (RND.nextDouble() * 1) + 0.5;
+
+            // Velocity
+            vX = (RND.nextDouble() * 0.5) - 0.25;
+            vY = -(RND.nextDouble() * 3);
+
+            // Opacity
+            opacity = 1.0;
+
+            // Life
+            life          = (RND.nextDouble() * 20) + 40;
+            remainingLife = life;
+        }
     }
 }
