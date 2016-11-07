@@ -90,7 +90,7 @@ public class MouseGravityParticles extends Application {
         }
 
         CANVAS.addEventFilter(MouseEvent.MOUSE_MOVED, new EventHandler<MouseEvent>() {
-            @Override public void handle(final MouseEvent EVENT) {
+            public void handle(final MouseEvent EVENT) {
                 mousePos[0] = EVENT.getX();
                 mousePos[1] = EVENT.getY();
             }
