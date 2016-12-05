@@ -32,15 +32,16 @@ import java.util.Random;
  * Created by hansolo on 09.10.16.
  */
 public class GravityParticles extends Application {
+    private static final double          V_MAX             = 299792458; //m / s
     private static final double          G                 = 6.673e-11; //m^3 / kg * s^2
     private static final Random          RND               = new Random();
-    private static final double          WIDTH             = 500;
-    private static final double          HEIGHT            = 500;
+    private static final double          WIDTH             = 700;
+    private static final double          HEIGHT            = 700;
     private static final double          METER_PER_PIXEL_X = 623_333_333.333333; // 240px == 149.6e6 (distance sun earth)
     private static final double          METER_PER_PIXEL_Y = 623_333_333.333333;
     private static final double          CENTER_X          = WIDTH * 0.5;
     private static final double          CENTER_Y          = HEIGHT * 0.5;
-    private static final int             PARTICLE_COUNT    = 2;
+    private static final int             PARTICLE_COUNT    = 3;
     private static final Canvas          CANVAS            = new Canvas(WIDTH, HEIGHT);
     private static final GraphicsContext CTX               = CANVAS.getGraphicsContext2D();
     private static final double          TIME_STEP         = 3600 * 24 * 365;
@@ -63,11 +64,13 @@ public class GravityParticles extends Application {
         };
 
         // Initialize with given particles
-        Particle earth = new Particle(240, 0, 0, -10, 4, 5.97E24);
         Particle sun   = new Particle(0, 0, 0, 0, 4, 1.989E30);
+        Particle earth = new Particle(240, 240, 10, -10, 4, 5.97E24);
+        Particle venus = new Particle(-174, -174, -11, 11, 4, 4.867E24);
 
         particles[0] = sun;
         particles[1] = earth;
+        particles[2] = venus;
     }
 
 
@@ -98,8 +101,8 @@ public class GravityParticles extends Application {
         P1.aX = P1.x > CENTER_X ? P1.aX + Fx / P1.mass : P1.aX - Fx / P1.mass;           // acceleration of P2 in x-direction
         P1.aY = P1.y > CENTER_Y ? P1.aY + Fy / P1.mass : P1.aY - Fy / P1.mass;           // acceleration of P2 in y-direction
 
-        P1.vX = P1.x > CENTER_X ? P1.vX - TIME_STEP * P1.aX : P1.vX + TIME_STEP * P1.aX; // velocity of P1 in x-direction
-        P1.vY = P1.y > CENTER_Y ? P1.vY - TIME_STEP * P1.aY : P1.vY + TIME_STEP * P1.aY; // velocity of P1 in y-direction
+        P1.vX = clamp(-V_MAX, V_MAX, P1.x > CENTER_X ? P1.vX - TIME_STEP * P1.aX : P1.vX + TIME_STEP * P1.aX); // velocity of P1 in x-direction
+        P1.vY = clamp(-V_MAX, V_MAX, P1.y > CENTER_Y ? P1.vY - TIME_STEP * P1.aY : P1.vY + TIME_STEP * P1.aY); // velocity of P1 in y-direction
 
         P1.x  += TIME_STEP * P1.vX / METER_PER_PIXEL_X;                                  // position x of P1
         P1.y  += TIME_STEP * P1.vY / METER_PER_PIXEL_Y;                                  // position y of P1
@@ -107,8 +110,8 @@ public class GravityParticles extends Application {
         P2.aX = P2.x > CENTER_X ? P2.aX + Fx / P2.mass : P2.aX - Fx / P2.mass;           // acceleration of P2 in x-direction
         P2.aY = P2.y > CENTER_Y ? P2.aY + Fy / P2.mass : P2.aY - Fy / P2.mass;           // acceleration of P2 in y-direction
 
-        P2.vX = P2.x > CENTER_X ? P2.vX - TIME_STEP * P2.aX : P2.vX + TIME_STEP * P2.aX; // velocity of P2 in x-direction
-        P2.vY = P2.y > CENTER_Y ? P2.vY - TIME_STEP * P2.aY : P2.vY + TIME_STEP * P2.aY; // velocity of P2 in y-direction
+        P2.vX = clamp(-V_MAX, V_MAX, P2.x > CENTER_X ? P2.vX - TIME_STEP * P2.aX : P2.vX + TIME_STEP * P2.aX); // velocity of P2 in x-direction
+        P2.vY = clamp(-V_MAX, V_MAX, P2.y > CENTER_Y ? P2.vY - TIME_STEP * P2.aY : P2.vY + TIME_STEP * P2.aY); // velocity of P2 in y-direction
 
         P2.x  += TIME_STEP * P2.vX / METER_PER_PIXEL_X;                                  // position x of P2
         P2.y  += TIME_STEP * P2.vY / METER_PER_PIXEL_Y;                                  // position y of P2
@@ -119,6 +122,12 @@ public class GravityParticles extends Application {
         double dy       = (P1.y - P2.y) * METER_PER_PIXEL_Y;
         double distance = Math.sqrt(dx * dx + dy * dy);
         return distance;
+    }
+
+    private double clamp(final double MIN, final double MAX, final double VALUE) {
+        if (VALUE < MIN) return MIN;
+        if (VALUE > MAX) return MAX;
+        return VALUE;
     }
 
     @Override public void start(Stage stage) throws Exception {
@@ -142,10 +151,10 @@ public class GravityParticles extends Application {
     private class Particle {
         public double x;
         public double y;
-        public double aX;       // [m*s*s]
-        public double aY;       // [m*s*s]
-        public double vX;       // [m*s]
-        public double vY;       // [m*s]
+        public double aX;       // [m/s*s]
+        public double aY;       // [m/s*s]
+        public double vX;       // [m/s]
+        public double vY;       // [m/s]
         public double radius;   // [m]
         public double mass;     // [kg]
         public double diameter;
