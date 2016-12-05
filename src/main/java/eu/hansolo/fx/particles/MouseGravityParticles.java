@@ -51,7 +51,7 @@ public class MouseGravityParticles extends Application {
     private static final int      VY                = 3;
     private static final int      AX                = 4;
     private static final int      AY                = 5;
-    private static final int      MOUSE_GRAVITY     = 18;    // 9
+    private static final int      MOUSE_GRAVITY     = 9;    // 18
     private static final int      SPEED             = 6;
     private static final int      NO_OF_FIELDS      = 7;    // x, y, vx, vy, ax, ay, speed
     private static final int      ARRAY_LENGTH      = NO_OF_PARTICLES * NO_OF_FIELDS;
